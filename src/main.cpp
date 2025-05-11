@@ -1,5 +1,10 @@
 #include <Arduino.h>
 #include <header.h>
+#include <LiquidCrystal_I2C.h>
+#include <Adafruit_AHTX0.h>
+#include <Adafruit_BMP280.h>
+#include <Wire.h>
+
 
 // LCD I2C Address: 0x27 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -8,12 +13,15 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 Adafruit_AHTX0 aht;
 Adafruit_BMP280 bmp; // I2C mode
 
-//Bluetooth HC-05 Serial Communication
+// Bluetooth HC-05 Serial Communication
 HardwareSerial Serial1(PA10, PA9); // RX, TX for Bluetooth HC-05
 #define BLUETOOTH_BAUD_RATE 9600 // Default baud rate for HC-05, change if needed
 
-ServoController servo1(0x40);  // PCA9685 at address 0x40
-ServoController servo2(0x41);  // PCA9685 at address 0x41
+// Timing for the walking cycle
+unsigned long previousMillis = 0;
+const long interval = 1000;  // Time between each step
+String btCommand = "";
+
 
 void setup() {
 
@@ -61,26 +69,76 @@ void setup() {
   Serial1.println("HC-05 Ready!"); // Send a test message over Bluetooth
   delay(100); // Short delay for stability
   SerialUSB.println("Bluetooth Initialized.");
-  // ---------------------------------------------------------------
 
   scanI2CBus(); // Scan I2C bus for connected devices
   SerialUSB.println("I2C Scan Complete.");
-
-  Serial.begin(115200);
-  while (!Serial);
-  servo1.begin();
+  setupServo(); // Initialize servos
+  SerialUSB.println("Servos Initialized.");
+  moveRestPostion(); 
 
   lcd.clear();
   lcd.print("Setup Complete!");
   SerialUSB.println("System Setup Complete.");
-  delay(1000);
+  delay(5000);
 
+  readAndDisplaySensors(aht, bmp, lcd); 
+
+  standUp(); 
 }
+
 
 void loop() {
-  readAndDisplaySensors(aht, bmp, lcd); // Read and display sensor data on LCD
-  delay(1000);
+  while (Serial1.available()) {
+    char c = Serial1.read();
 
-  servo1.processSerialCommands();
+    if (c == '\n' || c == '\r') {
+      btCommand.trim(); 
+
+      if (btCommand == "data()") {
+        sensors_event_t humidity, tempAHT;
+        aht.getEvent(&humidity, &tempAHT);
+        float tAHT = tempAHT.temperature;
+        float rh   = humidity.relative_humidity;
+        float tBMP = bmp.readTemperature();
+        float p    = bmp.readPressure() / 100.0;
+        sendBluetoothData(tAHT, rh, tBMP, p);
+      }
+
+      else if (btCommand == "forward()") {
+        Serial1.println("OK: Going forward");
+        forward();
+      }
+
+      else if (btCommand == "backward()") {
+        Serial1.println("OK: Going backward");
+        backward();
+      }
+
+      else if (btCommand == "rotateLeft()") {
+        Serial1.println("OK: Rotating left");
+        rotateLeft();
+      }
+
+      else if (btCommand == "rotateRight()") {
+        Serial1.println("OK: Rotating right");
+        rotateRight();
+      }
+
+      else {
+        Serial1.print("ERR: Unknown command: ");
+        Serial1.println(btCommand);
+      }
+
+      btCommand = ""; 
+
+    } else {
+      btCommand += c; 
+      if (btCommand.length() > 32) btCommand = "";
+    }
+  }
+
 
 }
+
+
+

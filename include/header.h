@@ -5,5 +5,6 @@
 #include <Adafruit_BMP280.h> // BMP280 Sensor Library
 #include <servo.h> // Servo Control 
 #include <screen_output.h> // LCD Output
-#include <bluetooth.cpp> // Bluetooth Communication
+#include <bluetooth.h> // Bluetooth Communication
 #include <i2c_verify.h> // I2C Verification
+#include <servo.h>

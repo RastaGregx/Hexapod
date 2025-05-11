@@ -13,7 +13,7 @@ void scanI2CBus() {
 
         if (error == 0) {
             SerialUSB.print("Found I2C device at address 0x");
-            if (address < 16) SerialUSB.print("0"); // leading zero for 0x01..0x0F
+            if (address < 16) SerialUSB.print("0"); 
             SerialUSB.println(address, HEX);
             nDevices++;
         } else if (error == 4) {

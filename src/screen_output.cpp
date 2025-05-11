@@ -1,5 +1,5 @@
 #include "screen_output.h"
-#include <Arduino.h> // Needed for delay(), SerialUSB.println(), etc.
+#include <Arduino.h> 
 
 void readAndDisplaySensors(Adafruit_AHTX0 &aht, Adafruit_BMP280 &bmp, LiquidCrystal_I2C &lcd) {
     sensors_event_t humidity_event, temp_aht_event;
